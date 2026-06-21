@@ -1,0 +1,84 @@
+function answercalc(x)
+	currentanswer = 0
+	firstanswer = 0
+	pastop = false
+	theop = ""
+	oplocation = 0
+	for i = 1,#x do
+		if pastop then
+			if theop == "+" then
+				currentanswer = tonumber(firstanswer) + tonumber(x:sub(oplocation+1,i))
+			elseif theop == "-" then
+				currentanswer = tonumber(firstanswer) - tonumber(x:sub(oplocation+1,i))
+			elseif theop == "x" or theop == "*" then
+				currentanswer = tonumber(firstanswer) * tonumber(x:sub(oplocation+1,i))
+			elseif theop == "/" then
+				currentanswer = math.floor((tonumber(firstanswer) / tonumber(x:sub(oplocation+1,i)))*100)/100
+			end
+		else
+			if x:sub(i,i) == "+" or x:sub(i,i) == "-" or x:sub(i,i) == "x" or x:sub(i,i) == "*" or x:sub(i,i) == "/" then
+				pastop = true
+				theop = x:sub(i,i)
+				oplocation = i
+			else
+				firstanswer = tonumber(x:sub(1,i))
+			end
+		end
+	end
+ return(currentanswer)
+end
+function send(x)
+ digiline_send("lcd",tostring(x))
+end
+function setmode(x)
+ mem.mode = x
+ if x == 1 then
+  send("Cyandows 96 First-time Setup\nPlease enter your name:")
+ elseif x == 2 then
+  send("Welcome, "..mem.user.."! :)\nPlease enter a letter to select an app:\nC - Calculator\nF - File Editing")
+ elseif x == 3 then
+  local list = ""
+  for k,v in pairs(mem.files) do
+   if #v > 0 then
+    list = list .. ","
+    list = list .. k
+   end
+  end
+  send("Enter a filename :)\n"..list:sub(2))
+ elseif x == 4 then
+  send("Editing file "..mem.editing.." :)\n"..mem.files[mem.editing])
+ elseif x == 5 then
+  send("Supported operations: +, -, x, *, /")
+ end
+end
+if event.type == "program" then
+ setmode(2)
+end
+if event.channel == "clear" then
+ mem.files = {}
+ setmode(1)
+end
+if event.channel == "home" then
+ setmode(2)
+end
+if event.channel == "keyboard" then
+ if mem.mode == 1 then
+  mem.user = event.msg
+  setmode(2)
+ elseif mem.mode == 2 then
+  if event.msg == "F" or event.msg == "f" then
+   setmode(3)
+  elseif event.msg == "C" or event.msg == "c" then
+   setmode(5)
+  end
+ elseif mem.mode == 3 then
+  mem.editing = event.msg
+  mem.files[mem.editing] = mem.files[mem.editing] or ""
+  setmode(4)
+ elseif mem.mode == 4 then
+  mem.files[mem.editing] = event.msg
+  setmode(4)
+ elseif mem.mode == 5 then
+  send(answercalc(event.msg))
+ end
+end
